@@ -10,7 +10,9 @@ rust-rc4 = { git = "https://github.com/mohanson/rust-rc4" }
 
 # Example
 
-```rs
+rust-rc4 is dead simple to use:
+
+```rust
 extern crate rust_rc4;
 
 use std::fs;
