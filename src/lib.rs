@@ -1,5 +1,6 @@
 use std::error;
 use std::fmt;
+use std::io;
 
 pub struct Cipher {
     s: [u8; 256],
@@ -46,6 +47,31 @@ impl Cipher {
         }
         self.i = i;
         self.j = j;
+    }
+}
+
+pub struct Reader<T: io::Read> {
+    reader: T,
+    cipher: Cipher,
+}
+
+impl<T: io::Read> Reader<T> {
+    pub fn new(r: T, key: &[u8]) -> Result<Self, Error> {
+        let cipher = Cipher::new(key)?;
+        let reader = Reader {
+            reader: r,
+            cipher: cipher,
+        };
+        Ok(reader)
+    }
+}
+
+impl<T: io::Read> io::Read for Reader<T> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        let mut src: Vec<u8> = vec![0; buf.len()];
+        let n = self.reader.read(&mut src[..])?;
+        self.cipher.crypto(&mut src[..], buf);
+        Ok(n)
     }
 }
 
