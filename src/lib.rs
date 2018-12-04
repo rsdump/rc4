@@ -70,7 +70,7 @@ impl<T: io::Read> io::Read for Reader<T> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
         let mut src: Vec<u8> = vec![0; buf.len()];
         let n = self.reader.read(&mut src[..])?;
-        self.cipher.crypto(&mut src[..], buf);
+        self.cipher.crypto(&mut src[..n], &mut buf[..n]);
         Ok(n)
     }
 }
