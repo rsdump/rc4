@@ -9,7 +9,7 @@ pub struct Cipher {
 }
 
 impl Cipher {
-    pub fn new(key: &[u8]) -> Result<Cipher, Error> {
+    pub fn init(key: &[u8]) -> Result<Cipher, Error> {
         let k = key.len();
         if k < 1 || k > 256 {
             return Err(Error::KeySizeError);
@@ -56,12 +56,9 @@ pub struct Reader<T: io::Read> {
 }
 
 impl<T: io::Read> Reader<T> {
-    pub fn new(r: T, key: &[u8]) -> Result<Self, Error> {
-        let cipher = Cipher::new(key)?;
-        let reader = Reader {
-            reader: r,
-            cipher: cipher,
-        };
+    pub fn init(r: T, key: &[u8]) -> Result<Self, Error> {
+        let cipher = Cipher::init(key)?;
+        let reader = Reader { reader: r, cipher };
         Ok(reader)
     }
 }
@@ -70,7 +67,7 @@ impl<T: io::Read> io::Read for Reader<T> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
         let mut src: Vec<u8> = vec![0; buf.len()];
         let n = self.reader.read(&mut src[..])?;
-        self.cipher.crypto(&mut src[..n], &mut buf[..n]);
+        self.cipher.crypto(&src[..n], &mut buf[..n]);
         Ok(n)
     }
 }
@@ -96,7 +93,7 @@ mod tests {
     use std::iter::repeat;
     #[test]
     fn test() {
-        let mut c = Cipher::new("Secret".as_bytes()).unwrap();
+        let mut c = Cipher::init("Secret".as_bytes()).unwrap();
         let src = "Attack at dawn";
         let mut dst: Vec<u8> = repeat(0).take(src.len()).collect();
         c.crypto(src.as_bytes(), &mut dst);

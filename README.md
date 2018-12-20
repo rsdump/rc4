@@ -24,7 +24,7 @@ fn main() {
     let k = "secret";
 
     let r = fs::File::open(src).unwrap();
-    let mut r = rc4::Reader::new(r, k.as_bytes()).unwrap();
+    let mut r = rc4::Reader::open(r, k.as_bytes()).unwrap();
     let mut w = fs::File::create(dst).unwrap();
     // Awesome! r implements io::Read, so it works well with the standard library.
     io::copy(&mut r, &mut w).unwrap();
