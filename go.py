@@ -9,11 +9,19 @@ def call(command):
         sys.exit(r)
 
 
-def main():
+def make():
     call('cargo fmt --all')
     call('cargo clippy --all')
     call('cargo build')
+
+
+def test():
     call('cargo test')
+
+
+def main():
+    make()
+    test()
 
 
 if __name__ == '__main__':

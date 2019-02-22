@@ -1,6 +1,16 @@
-use std::error;
-use std::fmt;
-use std::io;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Error {
+    KeySizeError,
+}
+
+impl std::error::Error for Error {}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::KeySizeError => return write!(f, "KeySizeError"),
+        };
+    }
+}
 
 pub struct Cipher {
     s: [u8; 256],
@@ -9,7 +19,7 @@ pub struct Cipher {
 }
 
 impl Cipher {
-    pub fn init(key: &[u8]) -> Result<Cipher, Error> {
+    pub fn new(key: &[u8]) -> Result<Cipher, Error> {
         let k = key.len();
         if k < 1 || k > 256 {
             return Err(Error::KeySizeError);
@@ -34,7 +44,7 @@ impl Cipher {
         Ok(c)
     }
 
-    pub fn crypto(&mut self, src: &[u8], dst: &mut [u8]) {
+    pub fn xor(&mut self, src: &[u8], dst: &mut [u8]) {
         let (mut i, mut j) = (self.i, self.j);
         for (k, v) in src.iter().enumerate() {
             i = i.overflowing_add(1).0;
@@ -50,58 +60,24 @@ impl Cipher {
     }
 }
 
-pub struct Reader<T: io::Read> {
+pub struct Reader<T: std::io::Read> {
     reader: T,
     cipher: Cipher,
 }
 
-impl<T: io::Read> Reader<T> {
-    pub fn init(r: T, key: &[u8]) -> Result<Self, Error> {
-        let cipher = Cipher::init(key)?;
+impl<T: std::io::Read> Reader<T> {
+    pub fn new(r: T, key: &[u8]) -> Result<Self, Error> {
+        let cipher = Cipher::new(key)?;
         let reader = Reader { reader: r, cipher };
         Ok(reader)
     }
 }
 
-impl<T: io::Read> io::Read for Reader<T> {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+impl<T: std::io::Read> std::io::Read for Reader<T> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let mut src: Vec<u8> = vec![0; buf.len()];
         let n = self.reader.read(&mut src[..])?;
-        self.cipher.crypto(&src[..n], &mut buf[..n]);
+        self.cipher.xor(&src[..n], &mut buf[..n]);
         Ok(n)
-    }
-}
-
-#[derive(Debug)]
-pub enum Error {
-    KeySizeError,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::KeySizeError => return write!(f, "KeySizeError"),
-        };
-    }
-}
-
-impl error::Error for Error {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::iter::repeat;
-    #[test]
-    fn test() {
-        let mut c = Cipher::init("Secret".as_bytes()).unwrap();
-        let src = "Attack at dawn";
-        let mut dst: Vec<u8> = repeat(0).take(src.len()).collect();
-        c.crypto(src.as_bytes(), &mut dst);
-        assert_eq!(
-            dst,
-            vec![
-                0x45, 0xA0, 0x1F, 0x64, 0x5F, 0xC3, 0x5B, 0x38, 0x35, 0x52, 0x54, 0x4B, 0x9B, 0xF5
-            ]
-        );
     }
 }
