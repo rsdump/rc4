@@ -21,6 +21,7 @@ pub struct Cipher {
 impl Cipher {
     pub fn new(key: &[u8]) -> Result<Cipher, Error> {
         let k = key.len();
+        #[allow(clippy::manual_range_contains)]
         if k < 1 || k > 256 {
             return Err(Error::KeySizeError);
         };
