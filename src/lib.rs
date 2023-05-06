@@ -7,8 +7,8 @@ impl std::error::Error for Error {}
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::KeySizeError => return write!(f, "KeySizeError"),
-        };
+            Error::KeySizeError => write!(f, "KeySizeError"),
+        }
     }
 }
 
@@ -21,7 +21,6 @@ pub struct Cipher {
 impl Cipher {
     pub fn new(key: &[u8]) -> Result<Cipher, Error> {
         let k = key.len();
-        #[allow(clippy::manual_range_contains)]
         if k < 1 || k > 256 {
             return Err(Error::KeySizeError);
         };
@@ -80,5 +79,30 @@ impl<T: std::io::Read> std::io::Read for Reader<T> {
         let n = self.reader.read(&mut src[..])?;
         self.cipher.xor(&src[..n], &mut buf[..n]);
         Ok(n)
+    }
+}
+
+pub struct Writer<T: std::io::Write> {
+    writer: T,
+    cipher: Cipher,
+}
+
+impl<T: std::io::Write> Writer<T> {
+    pub fn new(w: T, key: &[u8]) -> Result<Self, Error> {
+        let cipher = Cipher::new(key)?;
+        let writer = Writer { writer: w, cipher };
+        Ok(writer)
+    }
+}
+
+impl<T: std::io::Write> std::io::Write for Writer<T> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let mut dst: Vec<u8> = vec![0; buf.len()];
+        self.cipher.xor(buf, &mut dst);
+        self.writer.write(&dst)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.flush()
     }
 }
